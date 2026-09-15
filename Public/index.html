@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FarmDelivery - Sua Farmácia Online</title>
+  
+  <!-- Importação de Fontes do Google Fonts (Poppins) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Estilos Globais da Aplicação -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- ==========================================
+       CABEÇALHO PRINCIPAL (HEADER 100% LARGURA)
+       ========================================== -->
+  <header>
+    <div class="header-container">
+      <!-- Badge da Logo (Clicável para voltar à Home) -->
+      <div class="logo-badge" onclick="navegarPara('home')">
+        <h1>FarmDelivery 🐥</h1>
+      </div>
+      
+      <!-- Campo de Busca de Medicamentos -->
+      <div class="search-box">
+        <input type="text" id="inputBusca" placeholder="Buscar medicamento">
+        <button onclick="buscarProdutos()">Buscar</button>
+      </div>
+
+      <!-- Ações do Cabeçalho: Carrinho e Login/Perfil -->
+      <div class="header-actions">
+        <!-- Botão para abrir o drawer do carrinho -->
+        <button class="btn-carrinho" onclick="toggleCarrinho()">
+          🛒 Carrinho (<span id="cartCount">0</span>)
+        </button>
+
+        <!-- Área de Autenticação / Perfil do Usuário -->
+        <div id="userArea">
+          <!-- Botão "Entrar" exibido se não houver usuário logado -->
+          <button id="btnEntrar" class="btn-entrar" onclick="abrirModalAuth()">Entrar</button>
+          
+          <!-- Menu Dropdown do Usuário Logado -->
+          <div id="userDropdown" class="user-dropdown hidden">
+            <div class="avatar-box" onclick="toggleMenuPerfil()">
+              <div class="avatar">👤</div>
+              <span id="lblNomeUsuario">Nome Sobrenome</span>
+            </div>
+            <!-- Submenu suspenso de navegação do perfil -->
+            <div id="menuPerfil" class="menu-perfil hidden">
+              <button onclick="navegarPara('dados')">👤 Meus Dados</button>
+              <button onclick="navegarPara('pedidos')">📦 Meus Pedidos</button>
+              <hr>
+              <button onclick="fazerLogout()" class="btn-logout">Sair</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- ==========================================
+       CONTAINER PRINCIPAL (CONTEÚDO DAS PÁGINAS)
+       ========================================== -->
+  <main class="container">
+    
+    <!-- PÁGINA 1: CATÁLOGO DE PRODUTOS / HOME -->
+    <section id="pageHome" class="page-view">
+      <h2 class="titulo-centralizado">Medicamentos Disponíveis</h2>
+      
+      <div class="catalogo-layout">
+        <!-- Sidebar para filtros laterais (Receita e Controlados) -->
+        <aside class="sidebar-filtros">
+          <h3>Filtros</h3>
+          <div class="filtro-grupo">
+            <label class="checkbox-label">
+              <input type="checkbox" id="filterExigeReceita" onchange="aplicarFiltrosCatalogo()">
+              <span>Exige Receita</span>
+            </label>
+            <label class="checkbox-label">
+              <input type="checkbox" id="filterControlado" onchange="aplicarFiltrosCatalogo()">
+              <span>Remédios Controlados</span>
+            </label>
+          </div>
+        </aside>
+
+        <!-- Container onde o JavaScript injeta os cards dos produtos -->
+        <div class="catalogo-conteudo">
+          <div id="listaProdutos" class="grid-produtos"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PÁGINA 2: MEUS DADOS E ENDEREÇO -->
+    <section id="pageDados" class="page-view hidden">
+      <button class="btn-voltar" onclick="navegarPara('home')">← Voltar ao Catálogo</button>
+      
+      <div class="dados-container">
+        <h2>Meus Dados</h2>
+        <form id="formMeusDados" onsubmit="salvarMeusDados(event)" novalidate>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Nome:</label>
+              <input type="text" id="dadoNome" required onblur="validarCampoBlur(this)">
+              <span class="erro-campo hidden">Campo obrigatório</span>
+            </div>
+            <div class="form-group">
+              <label>Sobrenome:</label>
+              <input type="text" id="dadoSobrenome" required onblur="validarCampoBlur(this)">
+              <span class="erro-campo hidden">Campo obrigatório</span>
+            </div>
+            <div class="form-group">
+              <label>E-mail:</label>
+              <input type="email" id="dadoEmail" required onblur="validarCampoBlur(this)">
+              <span class="erro-campo hidden">Campo obrigatório</span>
+            </div>
+            <div class="form-group">
+              <label>Telefone:</label>
+              <input type="tel" id="dadoTelefone" maxlength="15" oninput="mascaraTelefone(this)" required onblur="validarCampoBlur(this)">
+              <span class="erro-campo hidden">Campo obrigatório</span>
+            </div>
+            <div class="form-group span-2">
+              <label>CPF:</label>
+              <input type="text" id="dadoCpf" maxlength="14" oninput="mascaraCPF(this)" required onblur="validarCampoBlur(this)">
+              <span class="erro-campo hidden">Campo obrigatório</span>
+            </div>
+          </div>
+
+          <hr class="divisor-secao">
+
+          <!-- Seção de Endereço Principal (Integração com API ViaCEP) -->
+          <h3>Endereço Principal de Entrega</h3>
+          <div class="form-grid">
+            <div class="form-group">
+              <label>CEP:</label>
+              <input type="text" id="dadoCep" placeholder="00000-000" maxlength="9" oninput="mascaraCEP(this)" onblur="buscarEnderecoPorCEP(this.value, 'dadoRua', 'dadoCidade', 'dadoEstado', 'dadoNumero')">
+            </div>
+            <div class="form-group span-2">
+              <label>Rua/Avenida:</label>
+              <input type="text" id="dadoRua" placeholder="Rua...">
+            </div>
+            <div class="form-group">
+              <label>Número:</label>
+              <input type="text" id="dadoNumero" placeholder="123">
+            </div>
+            <div class="form-group">
+              <label>Complemento:</label>
+              <input type="text" id="dadoComplemento" placeholder="Apt, Bloco...">
+            </div>
+            <div class="form-group">
+              <label>Cidade:</label>
+              <input type="text" id="dadoCidade">
+            </div>
+            <div class="form-group">
+              <label>Estado:</label>
+              <input type="text" id="dadoEstado" placeholder="UF" maxlength="2">
+            </div>
+          </div>
+
+          <button type="submit" class="btn-primary btn-salvar-dados">Salvar Alterações</button>
+        </form>
+
+        <hr class="divisor-secao">
+
+        <!-- Lista de Meios de Pagamento Registrados em Compras Anteriores -->
+        <h3>Meios de pagamento</h3>
+        <ul id="listaCartoes" class="lista-cartoes">
+          <li>Nenhum meio de pagamento registrado em compras.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- PÁGINA 3: HISTÓRICO DE PEDIDOS -->
+    <section id="pagePedidos" class="page-view hidden">
+      <button class="btn-voltar" onclick="navegarPara('home')">← Voltar ao Catálogo</button>
+      
+      <div class="dados-container">
+        <h2>Histórico de Pedidos</h2>
+        <div id="listaHistoricoPedidos">
+          <p>Carregando pedidos...</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PÁGINA 4: CHECKOUT / FINALIZAÇÃO DA COMPRA -->
+    <section id="pageCheckout" class="page-view hidden">
+      <button class="btn-voltar" onclick="navegarPara('home')">← Voltar ao Catálogo</button>
+      
+      <div class="dados-container">
+        <h2>Checkout de Compra</h2>
+        
+        <!-- Passo 1: Endereço de Entrega -->
+        <div class="checkout-secao">
+          <h3>1. Selecionar Endereço de Entrega</h3>
+          
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label for="selectEnderecoCheckout">Escolha o Endereço:</label>
+            <select id="selectEnderecoCheckout" onchange="alternarOpcaoEnderecoCheckout(this.value)">
+              <option value="principal">Endereço Cadastrado (Meus Dados)</option>
+              <option value="novo">+ Cadastrar Outro Endereço para esta entrega</option>
+            </select>
+          </div>
+
+          <!-- Resumo do Endereço Cadastrado -->
+          <div id="boxEnderecoPrincipal">
+            <p id="checkoutEnderecoResumo" class="endereco-card-resumo">Carregando endereço...</p>
+          </div>
+
+          <!-- Formulário para Endereço Alternativo -->
+          <div id="boxNovoEnderecoCheckout" class="form-grid hidden" style="margin-top: 10px;">
+            <div class="form-group">
+              <label>CEP:</label>
+              <input type="text" id="chkNovoCep" placeholder="00000-000" maxlength="9" oninput="mascaraCEP(this)" onblur="buscarEnderecoPorCEP(this.value, 'chkNovoRua', 'chkNovoCidade', 'chkNovoEstado', 'chkNovoNumero')">
+            </div>
+            <div class="form-group span-2">
+              <label>Rua/Avenida:</label>
+              <input type="text" id="chkNovoRua" placeholder="Rua...">
+            </div>
+            <div class="form-group">
+              <label>Número:</label>
+              <input type="text" id="chkNovoNumero" placeholder="123">
+            </div>
+            <div class="form-group">
+              <label>Complemento:</label>
+              <input type="text" id="chkNovoComplemento" placeholder="Apt, Bloco...">
+            </div>
+            <div class="form-group">
+              <label>Cidade:</label>
+              <input type="text" id="chkNovoCidade">
+            </div>
+            <div class="form-group">
+              <label>Estado:</label>
+              <input type="text" id="chkNovoEstado" placeholder="UF" maxlength="2">
+            </div>
+          </div>
+
+          <div class="prazo-box">
+            🚚 <strong>Prazo de entrega:</strong> Até 1 dia útil após a confirmação.
+          </div>
+        </div>
+
+        <hr class="divisor-secao">
+
+        <!-- Passo 2: Escolha do Pagamento (Cartão ou PIX) -->
+        <div class="checkout-secao">
+          <h3>2. Meio de Pagamento</h3>
+          <div class="pagamento-options">
+            <label class="radio-label">
+              <input type="radio" name="formaPagamento" value="cartao" checked onclick="alternarFormaPagamento('cartao')">
+              💳 Cartão de Crédito
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="formaPagamento" value="pix" onclick="alternarFormaPagamento('pix')">
+              ⚡ PIX
+            </label>
+          </div>
+
+          <!-- Formulário do Cartão -->
+          <div id="pagamentoCartaoBox" class="form-grid" style="margin-top: 15px;">
+            <div class="form-group span-2">
+              <label>Número do Cartão:</label>
+              <input type="text" id="chkCartaoNumero" placeholder="0000 0000 0000 0000" maxlength="19">
+            </div>
+            <div class="form-group">
+              <label>Validade:</label>
+              <input type="text" id="chkCartaoValidade" placeholder="MM/AA" maxlength="5">
+            </div>
+            <div class="form-group">
+              <label>CVV:</label>
+              <input type="text" id="chkCartaoCvv" placeholder="123" maxlength="4">
+            </div>
+          </div>
+
+          <!-- Caixa Informativa do PIX -->
+          <div id="pagamentoPixBox" class="pix-box hidden">
+            <p>Escaneie o QR Code ou copie a chave abaixo para pagar via PIX:</p>
+            <div class="qr-code-placeholder">📲 [ QR CODE SIMULADO ]</div>
+            <input type="text" readonly value="00020126360014BR.GOV.BCB.PIX0114+5511999999999" class="input-pix-copia">
+          </div>
+        </div>
+
+        <hr class="divisor-secao">
+
+        <!-- Passo 3: Resumo dos Valores -->
+        <div class="checkout-secao">
+          <h3>3. Resumo dos Valores</h3>
+          <div class="resumo-linha"><span>Subtotal produtos:</span><span id="chkSubtotal">R$ 0,00</span></div>
+          <div class="resumo-linha"><span>Frete Fixo:</span><span>R$ 10,00</span></div>
+          <div class="resumo-linha total-destaque"><span>Total Final:</span><strong id="chkTotal">R$ 10,00</strong></div>
+        </div>
+
+        <button class="btn-primary btn-finalizar-compra" onclick="confirmarPedidoCheckout()">Confirmar e Finalizar Pedido</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- ==========================================
+       NOTIFICAÇÃO TOAST (FEEDBACK VISUAL)
+       ========================================== -->
+  <div id="toastNotification" class="toast-yellow hidden">
+    <span id="toastMessage">Alterações realizadas com sucesso!</span>
+  </div>
+
+  <!-- ==========================================
+       MODAL DE AUTENTICAÇÃO (LOGIN / CADASTRO / ESQUECI SENHA)
+       ========================================== -->
+  <div id="modalAuth" class="modal hidden">
+    <div class="modal-content" id="modalAuthContent">
+      <span class="close-btn" onclick="fecharModalAuth()">✕</span>
+      
+      <!-- Formulário de Login -->
+      <div id="formLoginView">
+        <h3>Entrar no FarmDelivery</h3>
+        <form id="formLogin" onsubmit="realizarLogin(event)" novalidate>
+          <div class="form-group">
+            <input type="email" id="loginEmail" placeholder="E-mail" required onblur="validarCampoBlur(this)">
+            <span class="erro-campo hidden">Campo obrigatório</span>
+          </div>
+
+          <div class="form-group">
+            <input type="password" id="loginSenha" placeholder="Senha" required onblur="validarCampoBlur(this)">
+            <span class="erro-campo hidden">Campo obrigatório</span>
+          </div>
+
+          <button type="submit" class="btn-primary">Entrar</button>
+        </form>
+
+        <p class="troca-form">
+          <a href="#" onclick="alternarAuthForm('esqueci')">Esqueci minha senha</a><br><br>
+          Não tem uma conta? <a href="#" onclick="alternarAuthForm('cadastro')">Cadastre-se</a>
+        </p>
+      </div>
+
+      <!-- Formulário de Cadastro de Novo Usuário -->
+      <div id="formCadastroView" class="hidden">
+        <h3>Criar sua Conta</h3>
+        <form id="formCadastro" onsubmit="realizarCadastro(event)" novalidate>
+          <div class="input-row-grid">
+            <div class="form-group">
+              <input type="text" id="cadNome" placeholder="Nome *" required onblur="validarCampoBlur(this)">
+              <span class="erro-campo hidden">Campo obrigatório</span>
+            </div>
+            <div class="form-group">
+              <input type="text" id="cadSobrenome" placeholder="Sobrenome *" required onblur="validarCampoBlur(this)">
+              <span class="erro-campo hidden">Campo obrigatório</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <input type="email" id="cadEmail" placeholder="E-mail *" required onblur="validarCampoBlur(this)">
+            <span class="erro-campo hidden">Campo obrigatório</span>
+          </div>
+
+          <div class="form-group">
+            <input type="text" id="cadCpf" placeholder="CPF *" maxlength="14" required oninput="mascaraCPF(this); checarCpfExistenteLocal(this.value);" onblur="validarCampoBlur(this)">
+            <span class="erro-campo hidden">Campo obrigatório</span>
+            <span id="msgErroCpfExistente" class="erro-senha hidden">CPF já vinculado a uma conta</span>
+          </div>
+
+          <div class="form-group">
+            <input type="tel" id="cadTelefone" placeholder="Telefone *" maxlength="15" required oninput="mascaraTelefone(this)" onblur="validarCampoBlur(this)">
+            <span class="erro-campo hidden">Campo obrigatório</span>
+          </div>
+          
+          <div class="form-group">
+            <input type="password" id="cadSenha" placeholder="Crie uma senha *" required minlength="4" oninput="validarSenhas()" onblur="validarCampoBlur(this)">
+            <span class="erro-campo hidden">Campo obrigatório</span>
+          </div>
+
+          <div class="form-group">
+            <input type="password" id="cadSenhaConfirma" placeholder="Confirme a senha *" required minlength="4" oninput="validarSenhas()" onblur="validarCampoBlur(this)">
+            <span class="erro-campo hidden">Campo obrigatório</span>
+            <span id="msgErroSenha" class="erro-senha hidden">As senhas precisam ser iguais</span>
+          </div>
+
+          <button type="submit" class="btn-primary">Cadastrar</button>
+        </form>
+
+        <p class="troca-form">Já tem uma conta? <a href="#" onclick="alternarAuthForm('login')">Fazer Login</a></p>
+      </div>
+
+      <!-- Formulário de Recuperação de Senha -->
+      <div id="formEsqueciView" class="hidden">
+        <h3>Recuperar Senha</h3>
+        <p style="font-size: 0.85rem; color: #64748b; margin-bottom: 15px;">Informe seu e-mail para enviarmos o código de redefinição.</p>
+        
+        <form id="formEsqueciSenha" onsubmit="solicitarCodigoRecuperacao(event)">
+          <div class="form-group">
+            <input type="email" id="recuperaEmail" placeholder="Digite seu e-mail cadastrado *" required onblur="validarCampoBlur(this)">
+            <span class="erro-campo hidden">Campo obrigatório</span>
+          </div>
+          <button type="submit" class="btn-primary">Enviar Código</button>
+        </form>
+
+        <form id="formRedefinirSenha" class="hidden" onsubmit="confirmarRedefinicaoSenha(event)" style="margin-top: 15px;">
+          <div class="form-group">
+            <input type="text" id="recuperaCodigo" placeholder="Código de 4 dígitos *" maxlength="4" required>
+          </div>
+          <div class="form-group">
+            <input type="password" id="novaSenhaInput" placeholder="Nova Senha *" required minlength="4">
+          </div>
+          <button type="submit" class="btn-primary" style="background-color: #16a34a;">Redefinir Senha</button>
+        </form>
+
+        <p class="troca-form"><a href="#" onclick="alternarAuthForm('login')">Voltar ao Login</a></p>
+      </div>
+
+      <!-- Tela de Sucesso após Cadastro -->
+      <div id="cadastroSucessoView" class="hidden modal-sucesso-box">
+        <div class="sucesso-icon">🎉</div>
+        <h3>Cadastro realizado com sucesso!</h3>
+        <p>Sua conta foi criada. Você já está logado no sistema.</p>
+        <button class="btn-primary" onclick="fecharModalAuth()">Fechar e Continuar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       DRAWER/MODAL LATERAL DO CARRINHO
+       ========================================== -->
+  <div id="modalCarrinho" class="carrinho-modal hidden" onclick="fecharCarrinhoAoClicarFora(event)">
+    <div class="carrinho-content" onclick="event.stopPropagation()">
+      <div class="carrinho-header">
+        <h3>Seu Carrinho</h3>
+        <button class="btn-fechar" onclick="toggleCarrinho()">✕</button>
+      </div>
+
+      <div id="carrinhoItens" class="carrinho-itens">
+        <p class="empty-msg">Seu carrinho está vazio.</p>
+      </div>
+
+      <!-- Alerta e Upload de Receita Médica se Houver Medicamentos Controlados -->
+      <div id="areaReceita" class="area-receita hidden">
+        <h4>📄 Anexar Receita Médica</h4>
+        <p class="receita-alerta">Produtos que exigem receita detectados.</p>
+        <input type="file" id="inputFileReceita" accept="image/*,.pdf">
+      </div>
+
+      <div class="carrinho-footer">
+        <div class="total-box">
+          <span>Subtotal:</span>
+          <strong id="cartTotal">R$ 0,00</strong>
+        </div>
+        <button class="btn-finalizar" onclick="irParaCheckout()">Ir para checkout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       CHATBOT FLUTUANTE DO PATINHO (SUPORTE)
+       ========================================== -->
+  <div id="chatWidget" class="chat-widget">
+    <!-- Botão acionador ("fale conosco") -->
+    <button id="btnChatTrigger" class="btn-chat-trigger" onclick="toggleChat()">
+      <span class="chat-label-pill">fale conosco</span>
+      <span class="duck-icon-large">🐥</span>
+    </button>
+
+    <!-- Janela de mensagens do Chat (Esconde o botão quando aberta) -->
+    <div id="chatBody" class="chat-body hidden">
+      <div class="chat-header">
+        <span>Patinho Amarelo 🐥</span>
+        <button onclick="toggleChat()" class="btn-chat-close">✕</button>
+      </div>
+      <div id="chatMessages" class="chat-messages">
+        <p class="bot-msg">Quack! 🐥 Olá, como posso te ajudar hoje?</p>
+      </div>
+      <div class="chat-input">
+        <input type="text" id="inputChat" placeholder="Digite sua dúvida...">
+        <button onclick="enviarMensagemChat()">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Script Principal de Lógica Frontend -->
+  <script src="app.js"></script>
+</body>
+</html>
