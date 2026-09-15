@@ -1,8 +1,16 @@
 const express = require('express');
+const path = require('path'); // Importa o módulo nativo path
 const app = express();
 
 app.use(express.json());
-app.use(express.static('public'));
+
+// 1. Serve os arquivos estáticos da pasta 'Public' (com P maiúsculo)
+app.use(express.static(path.join(__dirname, 'Public')));
+
+// 2. Rota para a página principal (carrega o index.html da pasta Public)
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'Public', 'index.html'));
+});
 
 const usuarios = [];
 const pedidos = [];
