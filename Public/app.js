@@ -255,7 +255,6 @@ async function realizarCadastro(event) {
       loginSucesso(dados, true);
     }
   } catch (err) {
-    // Trata em modo local caso o backend não responda
     loginSucesso(dados, true);
   }
 }
@@ -490,7 +489,43 @@ async function buscarProdutos() {
     );
   }
 
+  // Gerencia a visibilidade do botão 'Voltar' da busca
+  gerenciarBotaoVoltarBusca(termo);
+
   aplicarFiltrosCatalogo();
+}
+
+// Cria/exibe o botão "Voltar" quando houver uma pesquisa ativa
+function gerenciarBotaoVoltarBusca(termo) {
+  let btnVoltar = document.getElementById('btnVoltarBusca');
+  
+  if (termo !== '') {
+    if (!btnVoltar) {
+      btnVoltar = document.createElement('button');
+      btnVoltar.id = 'btnVoltarBusca';
+      btnVoltar.className = 'btn-voltar';
+      btnVoltar.style.marginBottom = '15px';
+      btnVoltar.style.cursor = 'pointer';
+      btnVoltar.innerText = '← Voltar';
+      btnVoltar.onclick = limparBusca;
+
+      const secaoProdutos = document.getElementById('listaProdutos');
+      if (secaoProdutos && secaoProdutos.parentNode) {
+        secaoProdutos.parentNode.insertBefore(btnVoltar, secaoProdutos);
+      }
+    }
+    btnVoltar.classList.remove('hidden');
+    btnVoltar.style.display = 'inline-block';
+  } else if (btnVoltar) {
+    btnVoltar.classList.add('hidden');
+    btnVoltar.style.display = 'none';
+  }
+}
+
+// Funcao para limpar o campo de busca e recarregar o catálogo original
+function limparBusca() {
+  document.getElementById('inputBusca').value = '';
+  buscarProdutos();
 }
 
 function aplicarFiltrosCatalogo() {
@@ -750,7 +785,6 @@ function toggleChat() {
 
   chatBody.classList.toggle('hidden');
 
-  // Esconde o botão flutuante quando a janela do chat estiver aberta
   if (!chatBody.classList.contains('hidden')) {
     btnTrigger.classList.add('hidden');
   } else {
